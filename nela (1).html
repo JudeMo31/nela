@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>For Nela</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0812;
+    --surface: rgba(255,255,255,0.04);
+    --border: rgba(180,120,255,0.2);
+    --accent: #c084fc;
+    --accent2: #e879f9;
+    --text: #f5f0ff;
+    --muted: rgba(245,240,255,0.55);
+    --glow: rgba(192,132,252,0.28);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Jost', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    transition: background 1.6s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body.red-theme {
+    --bg: #0d0007;
+    --surface: rgba(255,255,255,0.04);
+    --border: rgba(255,80,100,0.25);
+    --accent: #ff4d6d;
+    --accent2: #ff85a1;
+    --text: #fff0f3;
+    --muted: rgba(255,240,243,0.52);
+    --glow: rgba(255,77,109,0.32);
+  }
+  #canvas { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+  .heart-layer { position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: 0; transition: opacity 2s ease; }
+  .heart-layer.show { opacity: 1; }
+  .heart-particle { position: absolute; bottom: -10%; animation: floatHeart linear infinite; opacity: 0; }
+  @keyframes floatHeart {
+    0%   { transform: translateY(0) rotate(-12deg); opacity: 0; }
+    8%   { opacity: 0.75; }
+    92%  { opacity: 0.5; }
+    100% { transform: translateY(-115vh) rotate(12deg); opacity: 0; }
+  }
+  #app {
+    position: relative; z-index: 1;
+    min-height: 100vh;
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: 2rem 1rem 4rem;
+  }
+  .screen {
+    display: none; flex-direction: column;
+    align-items: center; text-align: center;
+    width: 100%; max-width: 560px;
+    animation: fadeUp 0.65s ease both;
+  }
+  .screen.active { display: flex; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    padding: 2rem 1.5rem;
+    width: 100%;
+    backdrop-filter: blur(14px);
+    box-shadow: 0 0 55px var(--glow), inset 0 1px 0 rgba(255,255,255,0.05);
+    transition: border-color 1.2s, box-shadow 1.2s;
+  }
+  @media (min-width: 480px) {
+    .card { padding: 2.8rem 2.4rem; }
+    #app  { padding: 3rem 1.5rem 5rem; }
+  }
+  .q-number {
+    font-weight: 200; font-size: 0.68rem;
+    letter-spacing: 0.38em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 1.4rem;
+    transition: color 1s;
+  }
+  h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300; line-height: 1.28;
+    font-size: clamp(1.45rem, 5.5vw, 2.1rem);
+    margin-bottom: 1.2rem; color: var(--text);
+  }
+  .subtitle {
+    font-size: 0.85rem; color: var(--muted);
+    line-height: 1.75; margin-bottom: 1.6rem;
+  }
+  .intro-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(3.8rem, 16vw, 6rem);
+    font-style: italic; font-weight: 300;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.3rem; line-height: 1;
+  }
+  .intro-sub {
+    font-size: 0.75rem; color: var(--muted);
+    letter-spacing: 0.22em; text-transform: uppercase;
+    margin-bottom: 2.2rem;
+  }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff; border: none; border-radius: 50px;
+    padding: 0.9rem 2rem;
+    font-family: 'Jost', sans-serif; font-size: 0.82rem;
+    font-weight: 300; letter-spacing: 0.13em; text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 0 28px var(--glow);
+    transition: transform 0.18s, box-shadow 0.18s;
+    width: 100%;
+    touch-action: manipulation;
+  }
+  .btn:active { transform: scale(0.96); }
+  @media (min-width: 480px) { .btn { width: auto; min-width: 200px; } }
+  .btn-next { margin-top: 1.4rem; display: none; }
+  .btn-next.show { display: inline-flex; }
+  .options { display: flex; flex-direction: column; gap: 0.75rem; width: 100%; margin-bottom: 1.2rem; }
+  .option {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 13px; padding: 0.9rem 1.1rem;
+    cursor: pointer; text-align: left;
+    font-family: 'Jost', sans-serif; font-size: 0.9rem;
+    font-weight: 300; color: var(--text);
+    transition: border-color 0.22s, background 0.22s, transform 0.18s, opacity 0.3s;
+    display: flex; align-items: center; gap: 0.8rem;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .option:active { transform: scale(0.98); }
+  .option-letter {
+    width: 26px; height: 26px; border-radius: 50%;
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem; font-weight: 300;
+    flex-shrink: 0; transition: border-color 0.22s, background 0.22s;
+  }
+  .option.correct { border-color: #4ade80; background: rgba(74,222,128,0.09); pointer-events: none; }
+  .option.wrong   { border-color: #f87171; background: rgba(248,113,113,0.09); }
+  .option.locked  { pointer-events: none; opacity: 0.35; }
+  .text-area {
+    width: 100%; background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border); border-radius: 13px;
+    padding: 0.9rem 1.1rem; color: var(--text);
+    font-family: 'Cormorant Garamond', serif; font-size: 1.05rem;
+    font-style: italic; resize: none;
+    line-height: 1.75; min-height: 110px; margin-bottom: 1.2rem;
+    transition: border-color 0.22s;
+    outline: none; -webkit-appearance: none;
+  }
+  .text-area:focus { border-color: var(--accent); }
+  .text-area::placeholder { color: var(--muted); }
+  .scale-wrap { width: 100%; margin-bottom: 1.4rem; }
+  .scale-track {
+    position: relative; width: 100%; height: 6px;
+    background: rgba(255,255,255,0.1); border-radius: 3px; margin-bottom: 1rem;
+  }
+  .scale-fill {
+    position: absolute; left: 0; top: 0; height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 3px; width: 44.4%;
+    transition: width 0.1s;
+  }
+  .scale-thumb {
+    position: absolute; top: 50%; transform: translate(-50%,-50%);
+    width: 24px; height: 24px; background: var(--accent2);
+    border-radius: 50%; left: 44.4%;
+    box-shadow: 0 0 12px var(--glow);
+    pointer-events: none;
+    transition: left 0.1s;
+  }
+  .scale-labels { display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--muted); }
+  .scale-value {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 3.5rem; font-weight: 300; margin-bottom: 0.4rem;
+    color: var(--accent);
+  }
+  input[type=range] {
+    width: 100%; height: 100%;
+    -webkit-appearance: none; appearance: none;
+    background: transparent; cursor: pointer;
+    position: absolute; inset: 0; opacity: 0;
+    touch-action: none;
+  }
+  .break-wrap { display: none; text-align: center; padding-top: 0.5rem; }
+  .break-wrap.show { display: block; animation: fadeUp 0.55s ease; }
+  .infinity {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(5rem, 18vw, 9rem); font-weight: 300;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: infinityPop 0.75s cubic-bezier(.34,1.56,.64,1) both;
+    display: block;
+  }
+  @keyframes infinityPop {
+    from { transform: scale(0) rotate(-18deg); opacity: 0; }
+    to   { transform: scale(1) rotate(0deg); opacity: 1; }
+  }
+  .shatter { display: flex; justify-content: center; gap: 0.4rem; margin-bottom: 1rem; overflow: hidden; }
+  .shard { font-size: 1.1rem; color: var(--accent); animation: shardFly 0.55s ease forwards; }
+  @keyframes shardFly {
+    to { transform: translateY(-55px) rotate(var(--r, 28deg)) scale(0); opacity: 0; }
+  }
+  .final-card { border-color: rgba(255,77,109,0.38); }
+  .big-heart { font-size: 4.5rem; animation: heartbeat 1.3s ease-in-out infinite; display: block; margin-bottom: 0.9rem; }
+  @keyframes heartbeat {
+    0%,100%{transform:scale(1)} 15%{transform:scale(1.16)} 30%{transform:scale(1)} 44%{transform:scale(1.09)} 72%{transform:scale(1)}
+  }
+  .final-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(1.9rem, 6.5vw, 3rem);
+    font-style: italic; line-height: 1.22;
+    background: linear-gradient(135deg, #ff4d6d, #ff85a1);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; margin-bottom: 1.1rem;
+  }
+  .final-body { font-size: 0.93rem; color: var(--muted); line-height: 1.95; margin-bottom: 2rem; }
+  .progress { display: flex; gap: 0.4rem; margin-bottom: 1.8rem; flex-wrap: wrap; justify-content: center; }
+  .dot { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,0.15); transition: background 0.35s, transform 0.35s; }
+  .dot.active { background: var(--accent); transform: scale(1.55); }
+  .dot.done   { background: var(--accent); opacity: 0.55; }
+  .feedback { font-size: 0.83rem; color: var(--muted); min-height: 1.1em; margin-top: 0.7rem; font-style: italic; line-height: 1.5; transition: color 0.3s; }
+  .reveal-msg { margin-top: 1.2rem; padding: 1.1rem 0.9rem; border: 1px solid var(--border); border-radius: 13px; background: rgba(255,255,255,0.03); display: none; }
+  .reveal-msg.show { display: block; animation: fadeUp 0.5s ease; }
+  #music-frame { display: none; width: 0; height: 0; }
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<div class="heart-layer" id="heartLayer"></div>
+<div id="app">
+
+  <div class="screen active" id="s-intro">
+    <div class="intro-name">Nela</div>
+    <p class="intro-sub">something just for you</p>
+    <div class="card">
+      <p class="subtitle">
+        I made this because you deserve a little something.<br>
+        Answer honestly. There are no wrong answers here.<br>
+        <em style="color:var(--accent)">(well... almost none)</em>
+      </p>
+      <button class="btn" onclick="goTo('s-q1')">Open it ✦</button>
+    </div>
+  </div>
+
+  <div class="screen" id="s-q1">
+    <div class="progress" id="prog1"></div>
+    <div class="card">
+      <div class="q-number">Question 01 of 06</div>
+      <h2>When did you realize you loved me?</h2>
+      <p class="subtitle">Tell me the moment. Just one. Take your time.</p>
+      <textarea id="q1-ans" class="text-area" placeholder="I remember it was..." rows="4"></textarea>
+      <p class="feedback" id="q1-fb"></p>
+      <button class="btn" onclick="submitQ1()">Continue</button>
+    </div>
+  </div>
+
+  <div class="screen" id="s-q2">
+    <div class="progress" id="prog2"></div>
+    <div class="card">
+      <div class="q-number">Question 02 of 06</div>
+      <h2>When did we first start talking?</h2>
+      <p class="subtitle">Think carefully now.</p>
+      <div class="options" id="q2-opts">
+        <div class="option" onclick="answerQ2(this,'wrong')"><span class="option-letter">A</span>March 12th</div>
+        <div class="option" onclick="answerQ2(this,'wrong')"><span class="option-letter">B</span>March 15th</div>
+        <div class="option" onclick="answerQ2(this,'correct')"><span class="option-letter">C</span>March 17th</div>
+        <div class="option" onclick="answerQ2(this,'wrong')"><span class="option-letter">D</span>March 20th</div>
+      </div>
+      <p class="feedback" id="q2-fb"></p>
+      <button class="btn btn-next" id="q2-next" onclick="goTo('s-q3')">Next</button>
+    </div>
+  </div>
+
+  <div class="screen" id="s-q3">
+    <div class="progress" id="prog3"></div>
+    <div class="card">
+      <div class="q-number">Question 03 of 06</div>
+      <h2>What is my absolute favorite thing about you?</h2>
+      <p class="subtitle">Choose carefully.</p>
+      <div class="options" id="q3-opts">
+        <div class="option" onclick="answerQ3(this)"><span class="option-letter">A</span>Your smile</div>
+        <div class="option" onclick="answerQ3(this)"><span class="option-letter">B</span>Your laugh</div>
+        <div class="option" onclick="answerQ3(this)"><span class="option-letter">C</span>Your eyes</div>
+        <div class="option" onclick="answerQ3(this)"><span class="option-letter">D</span>Your soul</div>
+      </div>
+      <div class="reveal-msg" id="q3-reveal">
+        <div style="font-size:1.2rem;margin-bottom:0.5rem;">✦</div>
+        <p style="font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-style:italic;line-height:1.8;color:var(--accent);">
+          None of those. Choosing just one thing about you<br>
+          would be like picking a favourite star in the sky.<br><br>
+          <span style="font-weight:400;font-size:1.2rem;">Everything about you is perfect.</span>
+        </p>
+        <p style="font-size:0.72rem;color:var(--muted);margin-top:0.7rem;">(every answer was wrong on purpose)</p>
+      </div>
+      <button class="btn btn-next" id="q3-next" onclick="goTo('s-q4')">Next</button>
+    </div>
+  </div>
+
+  <div class="screen" id="s-q4">
+    <div class="progress" id="prog4"></div>
+    <div class="card">
+      <div class="q-number">Question 04 of 06</div>
+      <h2 id="q4-title">On a scale of 1 to 10, how deeply do you think I love you?</h2>
+      <p class="subtitle" id="q4-sub">Slide to your answer.</p>
+      <div id="q4-slider-section">
+        <div class="scale-value" id="scale-val">5</div>
+        <div class="scale-wrap">
+          <div class="scale-track">
+            <div class="scale-fill" id="scale-fill"></div>
+            <div class="scale-thumb" id="scale-thumb"></div>
+            <input type="range" id="scale-input" min="1" max="10" value="5" oninput="updateScale(this.value)">
+          </div>
+          <div class="scale-labels"><span>1</span><span>10</span></div>
+        </div>
+        <button class="btn" style="margin-top:0.9rem;" onclick="submitScale()">That is my answer</button>
+      </div>
+      <div class="break-wrap" id="scale-break">
+        <div class="shatter" id="shatter-row">
+          <span class="shard" style="--r:-42deg">1</span>
+          <span class="shard" style="--r:22deg">to</span>
+          <span class="shard" style="--r:-14deg">1</span>
+          <span class="shard" style="--r:36deg">0</span>
+          <span class="shard" style="--r:-28deg">?</span>
+          <span class="shard" style="--r:52deg">✦</span>
+        </div>
+        <span class="infinity">∞</span>
+        <p style="font-family:'Cormorant Garamond',serif;font-size:1.15rem;font-style:italic;margin:0.8rem 0 0.5rem;color:var(--text);">
+          No scale could ever hold it.
+        </p>
+        <p style="font-size:0.86rem;color:var(--muted);margin-bottom:1.8rem;line-height:1.75;">
+          I love you infinitely deeply, Nela, in a way that breaks every number ever invented.
+        </p>
+        <button class="btn" onclick="goTo('s-q5')">Keep going ♥</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen" id="s-q5">
+    <div class="progress" id="prog5"></div>
+    <div class="card">
+      <div class="q-number">Question 05 of 06</div>
+      <h2>What has been our biggest difficulty in this relationship?</h2>
+      <p class="subtitle">You know the answer to this one.</p>
+      <div class="options" id="q5-opts">
+        <div class="option" onclick="answerQ5(this,'wrong')"><span class="option-letter">A</span>The distance</div>
+        <div class="option" onclick="answerQ5(this,'wrong')"><span class="option-letter">B</span>Time zones</div>
+        <div class="option" onclick="answerQ5(this,'wrong')"><span class="option-letter">C</span>Bad WiFi</div>
+        <div class="option" onclick="answerQ5(this,'correct')"><span class="option-letter">D</span>Potato VPN</div>
+      </div>
+      <p class="feedback" id="q5-fb"></p>
+      <button class="btn btn-next" id="q5-next" onclick="goTo('s-q6')">Next</button>
+    </div>
+  </div>
+
+  <div class="screen" id="s-q6">
+    <div class="progress" id="prog6"></div>
+    <div class="card">
+      <div class="q-number">Question 06 of 06</div>
+      <h2>If we could disappear together into any body of water, where would it be?</h2>
+      <p class="subtitle">You already know this one. It is in your heart.</p>
+      <div class="options" id="q6-opts">
+        <div class="option" onclick="answerQ6(this,'wrong')"><span class="option-letter">A</span>The Pacific Ocean</div>
+        <div class="option" onclick="answerQ6(this,'wrong')"><span class="option-letter">B</span>The Mediterranean</div>
+        <div class="option" onclick="answerQ6(this,'correct')"><span class="option-letter">C</span>The Red Sea</div>
+        <div class="option" onclick="answerQ6(this,'wrong')"><span class="option-letter">D</span>The Dead Sea</div>
+      </div>
+      <p class="feedback" id="q6-fb"></p>
+      <button class="btn btn-next" id="q6-next" onclick="goFinal()">Keep reading ♥</button>
+    </div>
+  </div>
+
+  <div class="screen" id="s-final">
+    <div class="card final-card">
+      <span class="big-heart">♥</span>
+      <div class="final-title">Will you be my woman,<br>forever?</div>
+      <p class="final-body">
+        Not a label. Not a word.<br>
+        Just you and me,<br>
+        and the kind of love that does not need a name<br>
+        because it is already everything.<br><br>
+        I am yours, Nela. Completely, infinitely, always.
+      </p>
+      <button class="btn" onclick="sayYes()" style="font-size:0.95rem;padding:1rem 2rem;">
+        Yes, always ♥
+      </button>
+    </div>
+  </div>
+
+  <div class="screen" id="s-yes">
+    <div class="card final-card" style="padding:3rem 1.8rem;">
+      <span style="font-size:4rem;display:block;margin-bottom:1.2rem;animation:heartbeat 1s ease-in-out infinite">♥</span>
+      <div class="final-title" style="font-size:clamp(2.2rem,8vw,3.5rem);">She said yes.</div>
+      <p style="font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-style:italic;color:var(--muted);line-height:1.85;margin-top:1rem;">
+        I knew you would.<br>I love you, Nela.
+      </p>
+    </div>
+  </div>
+
+</div>
+
+<iframe id="music-frame" frameborder="0" allow="autoplay" src="about:blank"></iframe>
+
+<script>
+const TOTAL = 6;
+let q3Answered = false;
+let q4Submitted = false;
+
+function buildProgress(id, active) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = '';
+  for (let i = 1; i <= TOTAL; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i < active ? ' done' : i === active ? ' active' : '');
+    el.appendChild(d);
+  }
+}
+
+function goTo(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const t = document.getElementById(id);
+  t.classList.add('active');
+  t.style.animation = 'none';
+  void t.offsetHeight;
+  t.style.animation = '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function showNext(btnId) {
+  const btn = document.getElementById(btnId);
+  if (btn) btn.classList.add('show');
+}
+
+function submitQ1() {
+  const val = document.getElementById('q1-ans').value.trim();
+  if (!val) {
+    document.getElementById('q1-fb').textContent = 'Tell me something, no matter how small...';
+    return;
+  }
+  buildProgress('prog2', 2);
+  goTo('s-q2');
+}
+
+function answerQ2(el, type) {
+  if (el.classList.contains('correct') || el.classList.contains('wrong')) return;
+  const fb = document.getElementById('q2-fb');
+  const opts = document.querySelectorAll('#q2-opts .option');
+  if (type === 'correct') {
+    el.classList.add('correct');
+    opts.forEach(o => { if (o !== el) o.classList.add('locked'); });
+    fb.textContent = 'You remembered. March 17th, the beginning of everything.';
+    fb.style.color = '#4ade80';
+    showNext('q2-next');
+  } else {
+    el.classList.add('wrong');
+    fb.textContent = 'Hmm... think a little harder.';
+    fb.style.color = 'var(--muted)';
+  }
+}
+
+function answerQ3(el) {
+  if (q3Answered) return;
+  q3Answered = true;
+  const opts = document.querySelectorAll('#q3-opts .option');
+  opts.forEach(o => o.classList.add('wrong'));
+  setTimeout(() => {
+    opts.forEach(o => { o.classList.remove('wrong'); o.classList.add('locked'); });
+    document.getElementById('q3-reveal').classList.add('show');
+    showNext('q3-next');
+  }, 650);
+}
+
+function updateScale(v) {
+  document.getElementById('scale-val').textContent = v;
+  const pct = (v - 1) / 9 * 100;
+  document.getElementById('scale-fill').style.width = pct + '%';
+  document.getElementById('scale-thumb').style.left = pct + '%';
+}
+updateScale(5);
+
+function submitScale() {
+  if (q4Submitted) return;
+  q4Submitted = true;
+  document.getElementById('q4-slider-section').style.display = 'none';
+  document.getElementById('q4-title').textContent = 'The scale just broke.';
+  document.getElementById('q4-sub').textContent = '';
+  document.querySelectorAll('.shard').forEach((s, i) => {
+    s.style.animationDelay = (i * 0.07) + 's';
+  });
+  document.getElementById('scale-break').classList.add('show');
+}
+
+function answerQ5(el, type) {
+  if (el.classList.contains('correct') || el.classList.contains('wrong')) return;
+  const fb = document.getElementById('q5-fb');
+  const opts = document.querySelectorAll('#q5-opts .option');
+  if (type === 'correct') {
+    el.classList.add('correct');
+    opts.forEach(o => { if (o !== el) o.classList.add('locked'); });
+    fb.textContent = 'Ha! You remembered. Our legendary nemesis.';
+    fb.style.color = '#4ade80';
+    showNext('q5-next');
+  } else {
+    el.classList.add('wrong');
+    fb.textContent = 'Not quite... think about our real enemy.';
+    fb.style.color = 'var(--muted)';
+  }
+}
+
+function answerQ6(el, type) {
+  if (el.classList.contains('correct') || el.classList.contains('wrong')) return;
+  const fb = document.getElementById('q6-fb');
+  const opts = document.querySelectorAll('#q6-opts .option');
+  if (type === 'correct') {
+    el.classList.add('correct');
+    opts.forEach(o => { if (o !== el) o.classList.add('locked'); });
+    fb.textContent = 'You know. You always know.';
+    fb.style.color = '#4ade80';
+    showNext('q6-next');
+  } else {
+    el.classList.add('wrong');
+    fb.textContent = 'Close... but not quite.';
+    fb.style.color = 'var(--muted)';
+  }
+}
+
+function goFinal() {
+  goTo('s-final');
+  setTimeout(() => {
+    document.body.classList.add('red-theme');
+    launchHearts();
+    playMusic();
+  }, 450);
+}
+
+function launchHearts() {
+  const layer = document.getElementById('heartLayer');
+  layer.classList.add('show');
+  const syms = ['\u2665', '\u2764', '\u2661', '\uD83D\uDC95', '\u2746'];
+  const colors = ['#ff4d6d', '#ff85a1', '#ffb3c1', '#c9184a', '#ff758c'];
+  for (let i = 0; i < 35; i++) {
+    const h = document.createElement('div');
+    h.className = 'heart-particle';
+    h.textContent = syms[Math.floor(Math.random() * syms.length)];
+    h.style.left = (Math.random() * 96) + 'vw';
+    h.style.animationDuration = (7 + Math.random() * 9) + 's';
+    h.style.animationDelay = (Math.random() * 7) + 's';
+    h.style.fontSize = (0.75 + Math.random() * 1.5) + 'rem';
+    h.style.color = colors[Math.floor(Math.random() * colors.length)];
+    layer.appendChild(h);
+  }
+}
+
+function playMusic() {
+  const frame = document.getElementById('music-frame');
+  frame.src = 'https://www.youtube-nocookie.com/embed/GFCFrHRtPFc?autoplay=1&loop=1&playlist=GFCFrHRtPFc&controls=0&mute=0';
+}
+
+function sayYes() {
+  goTo('s-yes');
+  spawnCelebration();
+}
+
+function spawnCelebration() {
+  const layer = document.getElementById('heartLayer');
+  for (let i = 0; i < 28; i++) {
+    setTimeout(() => {
+      const h = document.createElement('div');
+      h.className = 'heart-particle';
+      h.textContent = '\u2665';
+      h.style.left = (Math.random() * 96) + 'vw';
+      h.style.animationDuration = '3.5s';
+      h.style.animationDelay = '0s';
+      h.style.fontSize = (1.5 + Math.random() * 2) + 'rem';
+      h.style.color = '#ff4d6d';
+      layer.appendChild(h);
+    }, i * 90);
+  }
+}
+
+(function () {
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, pts = [];
+  function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+  resize();
+  window.addEventListener('resize', resize);
+  function Pt() {
+    this.x = Math.random() * W; this.y = Math.random() * H;
+    this.r = Math.random() * 1.3 + 0.3;
+    this.vx = (Math.random() - 0.5) * 0.26; this.vy = (Math.random() - 0.5) * 0.26;
+    this.a = Math.random();
+    this.da = (Math.random() * 0.005 + 0.002) * (Math.random() < 0.5 ? 1 : -1);
+  }
+  Pt.prototype.tick = function () {
+    this.x += this.vx; this.y += this.vy;
+    this.a += this.da;
+    if (this.a > 1 || this.a < 0) this.da *= -1;
+    if (this.x < 0 || this.x > W || this.y < 0 || this.y > H) { this.x = Math.random() * W; this.y = Math.random() * H; }
+    const isRed = document.body.classList.contains('red-theme');
+    ctx.save();
+    ctx.globalAlpha = this.a * 0.45;
+    ctx.fillStyle = isRed ? '#ff4d6d' : '#c084fc';
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  };
+  for (let i = 0; i < 75; i++) pts.push(new Pt());
+  (function loop() { ctx.clearRect(0, 0, W, H); pts.forEach(p => p.tick()); requestAnimationFrame(loop); })();
+})();
+
+buildProgress('prog1', 1);
+buildProgress('prog2', 2);
+buildProgress('prog3', 3);
+buildProgress('prog4', 4);
+buildProgress('prog5', 5);
+buildProgress('prog6', 6);
+</script>
+</body>
+</html>
